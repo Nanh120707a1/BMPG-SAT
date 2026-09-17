@@ -1,27 +1,69 @@
+from multiprocessing import Process, Queue
+from queue import Empty
+
 from graph import read_graph
 from solver import solve
-from check_result import decode_model, check_result
+
+
+def solve_worker(n, edges, queue):
+    try:
+        result = solve(n, edges)
+        queue.put(("OK", result))
+    except Exception as e:
+        queue.put(("ERROR", str(e)))
+
+
+def solve_with_timeout(n, edges, timeout=300):
+    queue = Queue()
+
+    process = Process(
+        target=solve_worker,
+        args=(n, edges, queue)
+    )
+
+    process.start()
+
+    process.join(timeout)
+
+    if process.is_alive():
+        process.terminate()
+        process.join()
+
+        return "TIMEOUT"
+
+    try:
+        status, result = queue.get_nowait()
+    except Empty:
+        return "ERROR"
+
+    if status == "ERROR":
+        print("Solver error:", result)
+        return "ERROR"
+
+    return result
+
 
 def main():
     filename = "dataset/test1.txt"
 
     n, m, edges = read_graph(filename)
 
-    bandwidth, model = solve(n, edges)
+    result = solve_with_timeout(n, edges, timeout=300)
 
-    if bandwidth is None:
-        print("No solution")
-        return
+    if result == "TIMEOUT":
+        print("TIMEOUT")
 
-    labels = decode_model(model, n)
+    elif result == "ERROR":
+        print("ERROR")
 
-    print("Bandwidth:", bandwidth)
-    print("Labels:", labels)
+    elif result is None:
+        print("No result")
 
-    if check_result(n, edges, labels, bandwidth):
-        print("Result: VALID")
     else:
-        print("Result: INVALID")
+        p, model = result
+
+        print("Bandwidth:", p)
+        print("Model:", model)
 
 
 if __name__ == "__main__":
