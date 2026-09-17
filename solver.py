@@ -15,22 +15,10 @@ def check(n, edges, p):
 
 
 def solve(n, edges):
-    left = 1
-    right = n - 1
-
-    best_p = None
-    best_model = None
-
-    while left <= right:
-        mid = (left + right) // 2
-
-        model = check(n, edges, mid)
+    for p in range(1, n):
+        model = check(n, edges, p)
 
         if model is not None:
-            best_p = mid
-            best_model = model
-            right = mid - 1
-        else:
-            left = mid + 1
+            return p, model
 
-    return best_p, best_model
+    return None, None
