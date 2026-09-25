@@ -15,7 +15,8 @@ def check(n, edges, p):
 
 
 def solve(n, edges):
-    for p in range(1, n):
+    start = 0 if not edges else 1
+    for p in range(start, n):
         model = check(n, edges, p)
 
         if model is not None:

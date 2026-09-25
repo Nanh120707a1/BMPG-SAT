@@ -6,6 +6,11 @@ def decode_model(model, n):
             vertex = (x - 1) // n + 1
             label = (x - 1) % n + 1
 
+            if vertex in labels and labels[vertex] != label:
+                raise ValueError(
+                    f"Dinh {vertex} nhan nhieu nhan"
+                )
+
             labels[vertex] = label
 
     return labels
