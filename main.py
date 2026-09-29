@@ -14,19 +14,44 @@ from check_result import decode_model, check_result
 TIMEOUT = 300  # giới hạn mỗi testcase 300s
 
 
-def solve_worker(n, edges, queue):
+def solve_worker(n, edges, queue, progress_path):
     try:
-        result = solve(n, edges)
+        result = solve(
+            n,
+            edges,
+            progress_path
+        )
         queue.put(("OK", result))
     except Exception as e:
         queue.put(("ERROR", f"{type(e).__name__}: {e}"))
 
+def mark_timeout(progress_path):
+    if not progress_path.exists():
+        return
 
-def solve_with_timeout(n, edges, timeout=TIMEOUT):
+    try:
+        data = json.loads(
+            progress_path.read_text(encoding="utf-8")
+        )
+    except Exception:
+        data = {}
+
+    data["status"] = "TIMEOUT"
+
+    progress_path.write_text(
+        json.dumps(
+            data,
+            ensure_ascii=False,
+            indent=2
+        ),
+        encoding="utf-8"
+    )
+
+def solve_with_timeout(n, edges, progress_path, timeout=TIMEOUT):
     queue = Queue()
     process = Process(
         target=solve_worker,
-        args=(n, edges, queue)
+        args=(n, edges, queue, progress_path)
     )
 
     started = False
@@ -122,6 +147,7 @@ def main():
                 f"[{index}/{len(files)}] Dang chay: {filename.name}",
                 flush=True
             )
+            progress_path = output_dir / f"{filename.stem}_progress.json"
 
             start_time = perf_counter()
 
@@ -144,19 +170,24 @@ def main():
 
                 # 2. giải với timeout cho toàn bộ hàm solve
                 status, result = solve_with_timeout(
-                    n, edges, timeout=TIMEOUT
+                    n,
+                    edges,
+                    progress_path,
+                    timeout=TIMEOUT
                 )
 
                 if status == "TIMEOUT":
                     row["status"] = "TIMEOUT"
                     row["message"] = f"Vuot {TIMEOUT} giay"
+                    mark_timeout(progress_path)
 
                 elif status == "ERROR":
                     row["status"] = "ERROR"
                     row["message"] = result
 
                 else:
-                    p, model = result
+                    p = result["bandwidth"]
+                    model = result["model"]
 
                     if p is None or model is None:
                         raise ValueError("Solver khong tra ve nghiem")

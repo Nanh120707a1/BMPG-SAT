@@ -1,17 +1,29 @@
+from encoding import var
+
 def decode_model(model, n):
+
+    positive = {
+        x for x in model
+        if x > 0
+    }
+
     labels = {}
 
-    for x in model:
-        if 1 <= x <= n * n:
-            vertex = (x - 1) // n + 1
-            label = (x - 1) % n + 1
+    for v in range(1, n + 1):
 
-            if vertex in labels and labels[vertex] != label:
-                raise ValueError(
-                    f"Dinh {vertex} nhan nhieu nhan"
-                )
+        found = []
 
-            labels[vertex] = label
+        for label in range(1, n + 1):
+
+            if var(v, label, n) in positive:
+                found.append(label)
+
+        if not found:
+            raise ValueError(
+                f"Dinh {v} khong co label"
+            )
+
+        labels[v] = max(found)
 
     return labels
 
