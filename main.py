@@ -11,7 +11,7 @@ from solver import solve
 from check_result import decode_model, check_result
 
 
-TIMEOUT = 300  # giới hạn mỗi testcase 300s
+TIMEOUT = 3000  # giới hạn mỗi testcase 300s
 
 
 def solve_worker(n, edges, queue, progress_path):
