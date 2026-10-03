@@ -20,7 +20,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install python-sat
+          pip install python-sat scipy
 
       - name: Run BMPG-SAT
         run: |
