@@ -83,7 +83,7 @@ def build_static_encoding(n, solver):
     clause_count += len(enc.clauses)
 
     return vpool, transition_vars, clause_count
-def add_bandwidth_bound(n, edges, bandwidth, solver):
+def add_bandwidth_bound(n, edges, bandwidth, solver, selector):
     """
     Thêm constraint |label(u) - label(v)| <= bandwidth cho mọi cạnh (u,v).
     L(v,k) -> label(v) >= k
@@ -97,11 +97,13 @@ def add_bandwidth_bound(n, edges, bandwidth, solver):
         for k in range(bandwidth + 1, n + 1):
 
             solver.add_clause([
+                -selector,
                 -var(u, k, n),
                 var(v, k - bandwidth, n)
             ])
 
             solver.add_clause([
+                -selector,
                 -var(v, k, n),
                 var(u, k - bandwidth, n)
             ])

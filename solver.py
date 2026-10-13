@@ -1,6 +1,6 @@
 import json
 
-from pysat.solvers import Cadical195
+from pysat.solvers import Cadical300
 
 from encoding import build_static_encoding, add_bandwidth_bound
 from bounds import lower_bound, upper_bound
@@ -23,16 +23,17 @@ def solve(n, edges, progress_path=None):
     lb = lower_bound(n, edges)
     ub = upper_bound(n, edges)
 
-    solver = Cadical195()
+    solver = Cadical300()
 
     try:
-        _, _, static_clauses = build_static_encoding(
+        vpool, _, static_clauses = build_static_encoding(
             n,
             solver
         )
 
         best_bandwidth = None
         best_model = None
+        selectors = []
 
         for check_index, bandwidth in enumerate(
                 range(ub, lb - 1, -1),
@@ -50,14 +51,23 @@ def solve(n, edges, progress_path=None):
                 }
             )
 
+            selector = vpool.id()
+
             add_bandwidth_bound(
                 n,
                 edges,
                 bandwidth,
-                solver
+                solver,
+                selector
             )
 
-            sat = solver.solve()
+            assumptions = [-s for s in selectors]
+
+            assumptions.append(selector)
+
+            sat = solver.solve(assumptions = assumptions)
+
+            selectors.append(selector)
 
             if sat:
                 best_bandwidth = bandwidth
