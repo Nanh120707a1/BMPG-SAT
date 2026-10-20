@@ -33,7 +33,6 @@ def solve(n, edges, progress_path=None):
 
         best_bandwidth = None
         best_model = None
-        selectors = []
 
         for check_index, bandwidth in enumerate(
                 range(ub, lb - 1, -1),
@@ -46,8 +45,8 @@ def solve(n, edges, progress_path=None):
                     "current_bandwidth": bandwidth,
                     "check_index": check_index,
                     "lower_bound": lb,
-                "upper_bound": ub,
-                "best_sat_bandwidth": best_bandwidth
+                    "upper_bound": ub,
+                    "best_sat_bandwidth": best_bandwidth
                 }
             )
 
@@ -61,29 +60,25 @@ def solve(n, edges, progress_path=None):
                 selector
             )
 
-            assumptions = [-s for s in selectors]
-
-            assumptions.append(selector)
-
-            sat = solver.solve(assumptions = assumptions)
-
-            selectors.append(selector)
+            sat = solver.solve(assumptions=[selector])
 
             if sat:
                 best_bandwidth = bandwidth
                 best_model = solver.get_model()
 
                 write_progress(
-                progress_path,
-                {
-                    "status": "SAT",
-                    "current_bandwidth": bandwidth,
-                    "check_index": check_index,
-                    "lower_bound": lb,
-                    "upper_bound": ub,
-                    "best_sat_bandwidth": best_bandwidth
-                }
-            )
+                    progress_path,
+                    {
+                        "status": "SAT",
+                        "current_bandwidth": bandwidth,
+                        "check_index": check_index,
+                        "lower_bound": lb,
+                        "upper_bound": ub,
+                        "best_sat_bandwidth": best_bandwidth
+                    }
+                )
+
+                solver.add_clause([-selector])
 
             else:
                 write_progress(
@@ -97,7 +92,7 @@ def solve(n, edges, progress_path=None):
                         "best_sat_bandwidth": best_bandwidth
                     }
                 )
-
+                solver.add_clause([-selector])
                 break
 
         if best_bandwidth is None:
