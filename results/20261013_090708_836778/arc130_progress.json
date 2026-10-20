@@ -1,0 +1,8 @@
+{
+  "status": "UNSAT",
+  "current_bandwidth": 62,
+  "check_index": 60,
+  "lower_bound": 62,
+  "upper_bound": 121,
+  "best_sat_bandwidth": 63
+}
