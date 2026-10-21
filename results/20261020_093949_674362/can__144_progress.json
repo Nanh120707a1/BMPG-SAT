@@ -1,0 +1,8 @@
+{
+  "status": "TIMEOUT",
+  "current_bandwidth": 16,
+  "check_index": 3,
+  "lower_bound": 7,
+  "upper_bound": 18,
+  "best_sat_bandwidth": 17
+}
