@@ -16,7 +16,6 @@ def build_static_encoding(n, solver):
     """
 
     vpool = IDPool(start_from=n * n + 1)
-    transition_vars = {}
     clause_count = 0
 
     # Mọi đỉnh có label >= 1
@@ -39,7 +38,6 @@ def build_static_encoding(n, solver):
 
         for v in range(1, n + 1):
             t = vpool.id()
-            transition_vars[(v, k)] = t
 
             prev = var(v, k - 1, n)
             curr = var(v, k, n)
@@ -82,7 +80,26 @@ def build_static_encoding(n, solver):
 
     clause_count += len(enc.clauses)
 
-    return vpool, transition_vars, clause_count
+    return vpool, clause_count
+
+def add_symmetry_breaking(n, edges, solver):
+    # Phá đối xứng đảo ngược nhãn l <-> n + 1 -l
+    # Ép đỉnh có bậc lớn nhất 'a' nằm ở nửa đầu label(a) <= (n+1)//2
+
+    if not edges or n < 3:
+        return 0
+
+    degree = [0] * (n+1)
+    for u, v in edges:
+        degree[u] += 1
+        degree[v] += 1
+    a = max(range(1,n+1), key=lambda x: degree[x])
+    limit = (n+1)//2
+
+    # Phủ định mệnh đề: label(a) >= limit +1
+    solver.add_clause([-var(a, limit +1, n)])
+    return 1
+
 def add_bandwidth_bound(n, edges, bandwidth, solver):
     """
     Thêm constraint |label(u) - label(v)| <= bandwidth cho mọi cạnh (u,v).
@@ -93,19 +110,14 @@ def add_bandwidth_bound(n, edges, bandwidth, solver):
     clause_count = 0
 
     for u, v in edges:
-
         for k in range(bandwidth + 1, n + 1):
-
             solver.add_clause([
                 -var(u, k, n),
                 var(v, k - bandwidth, n)
             ])
-
             solver.add_clause([
                 -var(v, k, n),
                 var(u, k - bandwidth, n)
             ])
-
             clause_count += 2
-
     return clause_count

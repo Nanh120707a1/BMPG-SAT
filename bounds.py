@@ -12,69 +12,90 @@ def make_adjacency(n, edges):
 
 
 def bandwidth_of_order(order, edges):
-    position = {}
+    position = {v: i for i, v in enumerate(order, start = 1)}
 
-    for label, vertex in enumerate(order, start=1):
-        position[vertex] = label
+    return max((abs(position[u] - position[v]) for u, v in edges), default = 0)
 
-    bandwidth = 0
-
-    for u, v in edges:
-        bandwidth = max(
-            bandwidth,
-            abs(position[u] - position[v])
-        )
-
-    return bandwidth
-
-def upper_bound(n, edges):
-    adj = make_adjacency(n, edges)
-
-    visited = [False] * (n + 1)
-    order = []
-
-    starts = sorted(
-        range(1, n + 1),
-        key=lambda v: len(adj[v])
-    )
-
-    for start in starts:
-
-        if visited[start]:
+def components(n, adj):
+    seen = [False] * (n+1)
+    result = []
+    for s in range(1, n+1):
+        if seen[s]:
             continue
-
-        queue = deque([start])
-        visited[start] = True
-
+        seen[s] = True
+        queue = deque([s])
+        comp = [s]
         while queue:
+            u = queue.popleft()
+            for v in adj[u]:
+                if not seen[v]:
+                    seen[v] = True
+                    queue.append(v)
+                    comp.append(v)
+        result.append(comp)
+    return result
 
+def _bfs_dist(adj, s):
+    dist = {s : 0}
+    queue = deque([s])
+    while queue:
+        u = queue.popleft()
+        for v in adj[u]:
+            if v not in dist:
+                dist[v] = dist[u] + 1
+                queue.append(v)
+    return dist
+
+def upper_bound(n, edges, adj = None):
+    if adj is None:
+        adj = make_adjacency(n, edges)
+
+    deg = [len(a) for a in adj]
+    neighbors = [sorted(a, key = lambda x: deg[x]) for a in adj]
+
+    best_bw, best_order = None, None
+    # thử cuthill - mckee xuất phát từ mọi đỉnh 1->n
+
+    for start in range(1, n+1):
+        seen = [False]*(n+1)
+        seen[start] = True
+        queue = deque([start])
+        order = []
+        while queue:
             u = queue.popleft()
             order.append(u)
-
-            neighbors = sorted(
-                adj[u],
-                key=lambda v: len(adj[v])
-            )
-
-            for v in neighbors:
-
-                if not visited[v]:
-                    visited[v] = True
+            for v in neighbors[u]:
+                if not seen[v]:
+                    seen[v] = True
                     queue.append(v)
+        bw = bandwidth_of_order(order, edges)
+        if best_bw is None or bw < best_bw:
+            best_bw, best_order = bw, order
+    return best_bw, best_order
 
-    return bandwidth_of_order(order, edges)
-
-def lower_bound(n, edges):
+def lower_bound(n, edges, adj =None):
     if not edges:
         return 0
 
-    degree = [0] * (n + 1)
+    if adj is None:
+        adj = make_adjacency(n, edges)
 
-    for u, v in edges:
-        degree[u] += 1
-        degree[v] += 1
-
-    max_degree = max(degree)
-
-    # ceil(max_degree / 2)
-    return (max_degree + 1) // 2
+    best, diameter = 0,0
+    for v in range(1, n+1):
+        dist = bfs_dist(adj, v)
+        ecc = max(dist.values())
+        diameter = max(diameter, ecc)
+        count = [0]*(ecc + 1)
+        for d in dist.values():
+            count[d] += 1
+        total = 0
+        for r in range(ecc + 1):
+            total += count[r]
+            if r >= 1:
+                # |B(v, r)| - 1 <= 2*r*bw
+                # => bw >= ceil((|B(v, r) -1) / (2*r))
+                best = max(best, -(-(total-1) // (2*r)))
+    if diameter > 0:
+        # bw >= ceil((n-1) / diameter)
+        best = max(best, -(-(n-1) // diameter))
+    return best

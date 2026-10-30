@@ -8,7 +8,7 @@ from time import perf_counter
 
 from graph import read_graph
 from solver import solve
-from check_result import decode_model, check_result
+from check_result import check_result
 
 
 TIMEOUT = 3000  # giới hạn mỗi testcase 3000s
@@ -187,55 +187,46 @@ def main():
 
                 else:
                     p = result["bandwidth"]
-                    model = result["model"]
+                    labels = result["labels"]
 
-                    if p is None or model is None:
+                    if p is None or labels is None:
                         raise ValueError("Solver khong tra ve nghiem")
 
                     row["bandwidth"] = p
 
-                    # 3. giải mã model
-                    try:
-                        labels = decode_model(model, n)
-                    except ValueError as e:
-                        row["status"] = "INVALID"
-                        row["validation"] = "INVALID"
-                        row["message"] = str(e)
+                    # 3. kiểm tra tính hợp lệ của nghiệm
+                    valid = check_result(n, edges, labels, p)
 
-                    else:
-                        # 4. kiểm tra nghiệm
-                        valid = check_result(n, edges, labels, p)
+                    row["validation"] = (
+                        "VALID" if valid else "INVALID"
+                    )
+                    row["status"] = "OK" if valid else "INVALID"
 
-                        row["validation"] = (
-                            "VALID" if valid else "INVALID"
-                        )
-                        row["status"] = "OK" if valid else "INVALID"
-
-                        if not valid:
-                            row["message"] = (
-                                "Gan nhan khong hop le hoac "
-                                "bandwidth khong khop"
-                            )
-
-                        # 5. lưu cách gãn nhãn
-                        label_path = labels_dir / (
-                                filename.stem + ".json"
+                    if not valid:
+                        row["message"] = (
+                            "Gan nhan khong hop le hoac "
+                            "bandwidth khong khop"
                         )
 
-                        with label_path.open(
-                                "w", encoding="utf-8"
-                        ) as label_file:
-                            json.dump(
-                                {
-                                    "test": filename.name,
-                                    "bandwidth": p,
-                                    "validation": row["validation"],
-                                    "labels": labels,
-                                },
-                                label_file,
-                                ensure_ascii=False,
-                                indent=2,
-                            )
+                    # 4. lưu cách gãn nhãn
+                    label_path = labels_dir / (
+                            filename.stem + ".json"
+                    )
+
+                    with label_path.open(
+                            "w", encoding="utf-8"
+                    ) as label_file:
+                        json.dump(
+                            {
+                                "test": filename.name,
+                                "bandwidth": p,
+                                "validation": row["validation"],
+                                "labels": labels,
+                            },
+                            label_file,
+                            ensure_ascii=False,
+                            indent=2,
+                        )
 
             except Exception as e:
                 row["status"] = "ERROR"
@@ -245,7 +236,7 @@ def main():
                 perf_counter() - start_time, 3
             )
 
-            # 6. ghi kết quả của testcase vừa chạy
+            # 5. ghi kết quả của testcase vừa chạy
             writer.writerow(row)
             summary_file.flush()
 
